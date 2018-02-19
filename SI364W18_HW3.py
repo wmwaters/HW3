@@ -141,25 +141,38 @@ def internal_server_error(e):
 @app.route('/', methods=['GET', 'POST'])
 def index():
     # Initialize the form
-
+    form = TweetForm()
     # Get the number of Tweets
-
+    num_current = db.session.query(Tweet).count()
     # If the form was posted to this route,
     ## Get the data from the form
-
+    if form.validate_on_submit():
     ## Find out if there's already a user with the entered username
     ## If there is, save it in a variable: user
     ## Or if there is not, then create one and add it to the database
-
+        user_name = form.username.data
+        user = User.query.filter_by(username = user_name).first()
+        if not User:
+            user = User(username = user_name, display_name = form.display_name.data)
+            db.session.add(user)
+            db.session.commit()
     ## If there already exists a tweet in the database with this text and this user id (the id of that user variable above...) ## Then flash a message about the tweet already existing
     ## And redirect to the list of all tweets
-
+        text = form.text.data
+        tweet = Tweet.query.filter_by(text = text, user_id = user.id).first()
+        if tweet:
+            flash('*** That tweet already exists from that user! ***')
+            return redirect(url_for('see_all_tweets'))
     ## Assuming we got past that redirect,
     ## Create a new tweet object with the text and user id
     ## And add it to the database
     ## Flash a message about a tweet being successfully added
     ## Redirect to the index page
-
+        tweet = Tweet(text = text, user_id = user.id)
+        db.session.add(tweet)
+        db.session.commit()
+        flash('Tweet successfully added')
+        return redirect(url_for('index'))
     # PROVIDED: If the form did NOT validate / was not submitted
     errors = [v for v in form.errors.values()]
     if len(errors) > 0:
