@@ -1,6 +1,7 @@
 ## SI 364 - Winter 2018
 ## HW 3
-
+#WMWATERS
+#I asked Austin McCall questions about this assignment.
 ####################
 ## Import statements
 ####################
