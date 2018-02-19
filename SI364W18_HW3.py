@@ -68,7 +68,7 @@ class Tweet(db.Model):
 class User(db.Model):
     __tablename__ = "user"
     id = db.Column(db.Integer, primary_key = True)
-    username = db.Column(db.String(64), Unique = True)
+    username = db.Column(db.String(64), unique = True)
     display_name = db.Column(db.String(124))
 
 ## Should have a __repr__ method that returns strings of a format like:
@@ -99,13 +99,14 @@ def usernamevalidate(form, input):
 
 def display_namevalidate(form, input):
     if len(input.data.strip().split()) <= 1:
-        raise ValidationEroor('Display name is not at least 2 words.')
+        raise ValidationError('Display name is not at least 2 words.')
 
 
 class TweetForm(FlaskForm):
     text = StringField('Enter the text of the tweet (no more than 280 chars): ', validators = [Required('This field is required.'), Length(max = 280)])
     username = StringField('Enter the username of the twitter user (no "@"!): ', validators = [Required('This field is required.'), Length(max = 64), usernamevalidate])
     display_name = StringField('Enter the display name for the twitter user (must be at least 2 words): ', validators = [Required('This field is required.'), Length(max = 124), display_namevalidate])
+    submit = SubmitField()
 
 ###################################
 ##### Routes & view functions #####
@@ -152,7 +153,7 @@ def index():
     ## Or if there is not, then create one and add it to the database
         user_name = form.username.data
         user = User.query.filter_by(username = user_name).first()
-        if not User:
+        if not user:
             user = User(username = user_name, display_name = form.display_name.data)
             db.session.add(user)
             db.session.commit()
@@ -177,21 +178,23 @@ def index():
     errors = [v for v in form.errors.values()]
     if len(errors) > 0:
         flash("!!!! ERRORS IN FORM SUBMISSION - " + str(errors))
-    return render_template('index.html',) # TODO 364: Add more arguments to the render_template invocation to send data to index.html
+    return render_template('index.html', form = form, num_tweets = num_current) # TODO 364: Add more arguments to the render_template invocation to send data to index.html
 
 @app.route('/all_tweets')
 def see_all_tweets():
-    pass # Replace with code
+    #pass # Replace with code
     # TODO 364: Fill in this view function so that it can successfully render the template all_tweets.html, which is provided.
     # HINT: Careful about what type the templating in all_tweets.html is expecting! It's a list of... not lists, but...
     # HINT #2: You'll have to make a query for the tweet and, based on that, another query for the username that goes with it...
-
+    all_tweets_list = [(tweet.text, User.query.filter_by(id = tweet.user_id).first().username) for tweet in Tweet.query.all()]
+    return render_template('all_tweets.html', all_tweets = all_tweets_list)
 
 @app.route('/all_users')
 def see_all_users():
-    pass # Replace with code
+    #pass # Replace with code
     # TODO 364: Fill in this view function so it can successfully render the template all_users.html, which is provided.
-
+    user_list = [user for user in User.query.all()]
+    return render_template('all_users.html', users = user_list)
 # TODO 364
 # Create another route (no scaffolding provided) at /longest_tweet with a view function get_longest_tweet (see details below for what it should do)
 # TODO 364
@@ -207,7 +210,17 @@ def see_all_users():
 ## - Dictionary accumulation, the max value pattern
 ## - Sorting
 # may be useful for this problem!
-
+@app.route('/longest_tweet')
+def long_tweet():
+    max_tweet = (0,'','','')
+    for tweet in Tweet.query.all():
+        no_whitespace_text = tweet.text.replace(' ','')
+        if len(no_whitespace_text) > max_tweet[0]:
+            max_tweet = (len(no_whitespace_text), tweet.text, User.query.filter_by(id = tweet.user_id).first().username, User.query.filter_by(id = tweet.user_id).first().display_name)
+        elif len(no_whitespace_text) == max_tweet[0]:
+            no_whitespace_text = min(no_whitespace_text.lower(), max_tweet[1].lower())
+            max_tweet = (len(no_whitespace_text), tweet.text, User.query.filter_by(id = tweet.user_id).first().username, User.query.filter_by(id = tweet.user_id).first().display_name)
+    return render_template('longest_tweet.html', longest_tweet = max_tweet)
 
 if __name__ == '__main__':
     db.create_all() # Will create any defined models when you run the application
