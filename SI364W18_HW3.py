@@ -93,7 +93,19 @@ class User(db.Model):
 # - the display name MUST be at least 2 words (this is a useful technique to practice, even though this is not true of everyone's actual full name!)
 
 # TODO 364: Make sure to check out the sample application linked in the readme to check if yours is like it!
+def usernamevalidate(form, input):
+    if input.data.strip()[0] == '@':
+        raise ValidationError('Username begins with @ sign -- leave off the @ for username!')
 
+def display_namevalidate(form, input):
+    if len(input.data.strip().split()) <= 1:
+        raise ValidationEroor('Display name is not at least 2 words.')
+
+
+class TweetForm(FlaskForm):
+    text = StringField('Enter the text of the tweet (no more than 280 chars): ', validators = [Required('This field is required.'), Length(max = 280)])
+    username = StringField('Enter the username of the twitter user (no "@"!): ', validators = [Required('This field is required.'), Length(max = 64), usernamevalidate])
+    display_name = StringField('Enter the display name for the twitter user (must be at least 2 words): ', validators = [Required('This field is required.'), Length(max = 124), display_namevalidate])
 
 ###################################
 ##### Routes & view functions #####
